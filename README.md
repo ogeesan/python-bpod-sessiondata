@@ -15,10 +15,10 @@ SessionData = SessionDataClass(filepath)
 
 # Create a dictionary
 from pybpoddata import load_sessiondata_dict
-SessionData = load_sessiondata_dict(path/to/SessionData.mat)
+SessionData = load_sessiondata_dict(filepath)
 ```
 
-I recommend using `SessionDataClass` for two reasons: because `pybpoddata.analysis` was built to work with `SessionDataClass` and because extending functionality with classes is perfect for this type of data. But it’s simpler (in some cases) to interact with the diction
+I recommend using `SessionDataClass` for two reasons: because `pybpoddata.analysis` was built to work with `SessionDataClass` and because extending functionality with classes is perfect for this type of data. But it’s simpler (in some cases) to interact with the dictionary.
 
 ## What loading does
 
