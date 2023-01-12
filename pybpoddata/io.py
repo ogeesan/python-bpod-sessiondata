@@ -7,7 +7,7 @@ def load_sessiondata_dict(fpath):
     """
     Loads a mat file into a dictionary that's been reformatted for ease of use.
 
-    Note that SessionData['RawEvents'] does not contain the unnecessary ['Trial'] anymore.
+    SessionData['RawEvents'] does not contain the unnecessary ['Trial'] anymore.
     Note that SettingsFile and RawData is undeveloped
 
     The slowest part of this is loading the .mat file, the conversions don't take much time at all.

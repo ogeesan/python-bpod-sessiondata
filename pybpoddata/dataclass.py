@@ -24,6 +24,8 @@ class SessionDataClass:
     TrialStartTimestamp: np.ndarray
     TrialEndTimestamp: np.ndarray
     SettingsFile: dict
+    
+    meta: dict  # This is created on initialisation of an object
 
     def __init__(self, filepath_or_dict):
         """
@@ -46,6 +48,7 @@ class SessionDataClass:
                      'allevents': []}  # all events that the session will encounter
 
         # Set each dictionary item as an attribute of the object
+        # This doesn't seem like best practice: Might change this to use @property while storing the raw data in ._sessiondata?
         for key, item in sessiondatadict.items():
             setattr(self, key, item)
 
