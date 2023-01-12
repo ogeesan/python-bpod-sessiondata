@@ -4,7 +4,7 @@ To install, download this package and use `pip install -e .`
 
 # Usage
 
-You can either load in the .mat file as a `SessionDataClass` object (which provides extra functionality) or a as a dictionary.
+You can either load in the .mat file as a `SessionDataClass` object (which provides extra functionality) or as a dictionary.
 
 ```python
 filepath = 'path/to/SessionData.mat'
@@ -18,7 +18,7 @@ from pybpoddata import load_sessiondata_dict
 SessionData = load_sessiondata_dict(path/to/SessionData.mat)
 ```
 
-I recommend using `SessionDataClass` Because plotting functions and other bits and pieces were built to work with `BpodDataClass` rather than a dictionary, and extending the functionality is banger.
+I recommend using `SessionDataClass` for two reasons: because `pybpoddata.analysis` was built to work with `SessionDataClass` and because extending functionality with classes is perfect for this type of data. But it’s simpler (in some cases) to interact with the diction
 
 ## What loading does
 
