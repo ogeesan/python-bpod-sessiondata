@@ -38,8 +38,8 @@ The benefit of working with this `SessionDataClass` is that you can extend the f
 
 ```python
 # In your own project environment
-from pybpoddata import dataclass as bpoddataclass
-class SessionDataClass(bpoddataclass.SessionDataClass):
+from pybpoddata import classes
+class SessionDataClass(classes.SessionDataClass):
     def __init__(self, fpath):
     	super().__init__(fpath)  # Run the parent's init
         
@@ -50,10 +50,10 @@ class SessionDataClass(bpoddataclass.SessionDataClass):
     def get_trial(self, trial):
         return TrialClass(self, trial)
     
-class TrialClass(bpoddataclass.AbstractTrialClass):
+class TrialClass(classes.AbstractTrialClass):
     def __init__(self, SessionData, trial):
         super().__init__(SessionData, trial)
     
     def outcome(self):
-        return my_outc(self)
+        return my_outcome_function(self)
 ```
