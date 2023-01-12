@@ -40,7 +40,7 @@ class SessionDataClass:
             sessiondatadict = filepath_or_dict
         else:
             filepath = filepath_or_dict
-            sessiondatadict = io.load_sessiondata_dict(filepath)
+            sessiondatadict = io.load_sessiondata_dict(filepath, simplify_rawevents=True)
 
         # Store additional metadata about the session
         self.meta = {'filename': filepath,

@@ -3,7 +3,7 @@ import datetime
 import numpy as np
 from scipy.io import loadmat
 
-def load_sessiondata_dict(fpath):
+def load_sessiondata_dict(fpath, simplify_rawevents=True):
     """
     Loads a mat file into a dictionary that's been reformatted for ease of use.
 
@@ -13,7 +13,8 @@ def load_sessiondata_dict(fpath):
     The slowest part of this is loading the .mat file, the conversions don't take much time at all.
 
     :param fpath: path to a SessionData .mat file
-    :return:
+    :param simplify_rawevents: Remove 'Trial' key from RawEvents, allowing access directly in with RawEvents[trial_number]
+    :return: SessionData in dictionary form, formatted properly
     :rtype: dict
     """
 
@@ -31,7 +32,10 @@ def load_sessiondata_dict(fpath):
     reformatted_RawEvents = []
     for trial in range(sessiondata['nTrials']):
         reformatted_RawEvents.append(reformat_trialdata(sessiondata['RawEvents']['Trial'][trial]))
-    sessiondata['RawEvents'] = reformatted_RawEvents
+    if simplify_rawevents:
+        sessiondata['RawEvents'] = reformatted_RawEvents
+    else:
+        sessiondata['RawEvents']['Trial'] = reformatted_RawEvents
 
     return sessiondata
 
