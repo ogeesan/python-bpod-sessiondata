@@ -32,9 +32,15 @@ I recommend using `SessionDataClass` for two reasons: because `pybpoddata.analys
 
 `pybpoddata.dataclass.SessionDataClass` is built for working with Bpod data as exported from Bpod’s MATLAB installation.
 
-`BpodDataClass` can take a path to a file or a dictionary (`io.load_sessiondata_dict` is recommended) as an input.
+`SessionDataClass` can take a path to a file or a dictionary (`io.load_sessiondata_dict` is recommended) as an input.
 
-The benefit of working with this `SessionDataClass` is that you can extend the functionality using [class inheritance](https://docs.python.org/3/tutorial/classes.html#inheritance) to fit the specifics of your Bpod protocol.
+`SessionDataClass` can be iterated over:
+
+```python
+outcomes = [Trial.outcome() for Trial in SessionData]
+```
+
+In order to make full use of this, you must extend the functionality using [class inheritance](https://docs.python.org/3/tutorial/classes.html#inheritance) to fit the specifics of your Bpod protocol.
 
 ```python
 # In your own project environment
@@ -55,5 +61,9 @@ class TrialClass(classes.AbstractTrialClass):
         super().__init__(SessionData, trial)
     
     def outcome(self):
-        return my_outcome_function(self)
+        RawEvents = self.RawEvents
+        outcome_string = my_outcome_function(RawEvents)  # This function depends on your protocol
+        return outcome_string
 ```
+
+In this way I think it makes a lot of sense to use `TrialClass` objects to do the work involved with the behaviour (e.g. how many times a mice did X before Y) rather than access the `SessionData` object directly.

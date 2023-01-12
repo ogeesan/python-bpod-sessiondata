@@ -67,6 +67,11 @@ class SessionDataClass:
 
     def get_trial(self, trial):
         return AbstractTrialClass(self, trial)
+    
+    def __iter__(self):
+        """Use SessionData in a for loop to return Trial objects"""
+        for trial in range(self.nTrials):
+            yield self.get_trial(trial)
 
     def trial_times(self, timetype='start'):
         if timetype == 'start':
