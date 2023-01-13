@@ -28,6 +28,16 @@ I recommend using `SessionDataClass` for two reasons: because `pybpoddata.analys
 2. The time arrays in `States` and `Events` are reformatted to ensure compatibility during indexing (this is the most important one)
 3. `SettingsFile` and `RawData` don’t get any reformatting because I never use them, but they almost certain do require reformatting if you are going to use them. Happy to take an issues/pull requests for them.
 
+## Time profile
+
+Using the `snakeviz` plugin in an iPython console I’ve looked at loading times into `SessionDataClass`. Using a 4.25 MB .mat file, the total time is 0.170 seconds. The breakdown of of that time:
+
+| Function                           | Time (s) | Percent of total time |
+| ---------------------------------- | -------- | --------------------- |
+| `scipy.io.loadmat`                 | 0.157    | 92.3%                 |
+| `pybpoddata.io.reformat_trialdata` | 0.0093   | 5.5%                  |
+| everything else                    | 0.0037   | 2.2%                  |
+
 # Using `SessionDataClass`
 
 `pybpoddata.dataclass.SessionDataClass` is built for working with Bpod data as exported from Bpod’s MATLAB installation.
