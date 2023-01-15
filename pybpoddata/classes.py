@@ -26,6 +26,7 @@ class BaseSessionDataClass:
         is_legacy = io.determine_version(sessiondatadict) == 'legacy'
         
         self.meta = {'filename': filepath,
+                     'start_time': None,
                      'allstates': [],  # all states that the session will enter
                      'allevents': [],  # all events that the session will encounter
                      'is_legacy': is_legacy
@@ -172,3 +173,44 @@ class LegacySessionDataClass(BaseSessionDataClass):
     """
     def __init__(self, fpath_or_dict):
         super().__init__(fpath_or_dict)
+        
+        # I'm not sure if the start time data is recoverable from the vanilla
+        # legacy bpod, but it could be extracted from the file name...
+
+    def summary(self):
+        """Print a text summary for a fast understanding"""
+        print(f"Filename: {self.meta['filename']}\n"
+              f"{self.nTrials} trials completed in {self.TrialStartTimestamp[-1] / 60:.1f} minutes on {self.meta['start_time']}\n"
+              f"All states: {self.meta['allstates']}\n"
+              f"All events: {self.meta['allevents']}\n")
+    
+    def summary_plot(self, fig=None):
+        fig = plt.gcf() if fig is None else fig
+
+        gridspec = plt.GridSpec(4, 1, figure=fig)
+
+        papaax = plt.subplot(gridspec[0])
+        plot.plot_statedurations_across_trials(self, papaax)
+
+        ax = plt.subplot(gridspec[1], sharex=papaax)
+        plot.plot_eventnumbers_across_trials(self, ax)
+
+
+        statedata = analysis.calculate_trial_times_table(self)
+        eventdata = analysis.calculate_event_occurrences_table(self)
+
+        ax = plt.subplot(gridspec[2])
+        medians = analysis.calculate_medians_table(statedata, 'State', 'Duration')
+        sns.scatterplot(data=medians, x='Duration', y='State', color='r', label='Median')
+        sns.stripplot(data=statedata, x='Duration', y='State', orient='h',
+                      zorder=-1, color='b', alpha=0.3)
+        ax.grid()
+        sns.despine()
+
+        ax = plt.subplot(gridspec[3])
+        medians = analysis.calculate_medians_table(eventdata, 'Event', 'Occurrences')
+        sns.scatterplot(data=medians, x='Occurrences', y='Event', color='r', label='Median')
+        sns.stripplot(data=eventdata, x='Occurrences', y='Event', orient='h',
+                      zorder=-1, color='b', alpha=0.3)
+        ax.grid()
+        sns.despine()
