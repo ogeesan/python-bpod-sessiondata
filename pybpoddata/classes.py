@@ -7,26 +7,7 @@ import seaborn as sns
 from . import analysis, io, plot
 
 
-class SessionDataClass:
-    """
-    Class for dealing with SessionData in Python.
-
-    Loads SessionDataClass MATLAB structure "fields" in as class attributes.
-    """
-
-    # Specify the default attributes and their data types
-    default_attributes = ['Info', 'nTrials', 'RawEvents', 'RawData', 'TrialStartTimestamp', 'TrialEndtimestamp',
-                          'SettingsFile']
-    Info: dict
-    nTrials: int
-    RawEvents: list  # Note that this removes the ['Trial'] index requirement
-    RawData: dict
-    TrialStartTimestamp: np.ndarray
-    TrialEndTimestamp: np.ndarray
-    SettingsFile: dict
-    
-    meta: dict  # This is created on initialisation of an object
-
+class BaseSessionDataClass:
     def __init__(self, filepath_or_dict):
         """
         Python version of SessionDataClass
@@ -41,11 +22,14 @@ class SessionDataClass:
         else:
             filepath = filepath_or_dict
             sessiondatadict = io.load_sessiondata_dict(filepath, simplify_rawevents=True)
-
-        # Store additional metadata about the session
+        
+        is_legacy = io.determine_version(sessiondatadict) == 'legacy'
+        
         self.meta = {'filename': filepath,
                      'allstates': [],  # all states that the session will enter
-                     'allevents': []}  # all events that the session will encounter
+                     'allevents': [],  # all events that the session will encounter
+                     'is_legacy': is_legacy
+                     }  
 
         # Set each dictionary item as an attribute of the object
         # This doesn't seem like best practice: Might change this to use @property while storing the raw data in ._sessiondata?
@@ -61,17 +45,43 @@ class SessionDataClass:
         allstates, allevents = analysis.find_all_states_events(sessiondatadict['RawEvents'])
         self.meta['allstates'] = allstates
         self.meta['allevents'] = allevents
-
-        start_str = self.Info['SessionDate'] + ' ' + self.Info['SessionStartTime_UTC']
-        self.meta['start_time'] = datetime.datetime.strptime(start_str, '%d-%b-%Y %H:%M:%S')
-
+    
     def get_trial(self, trial):
         return AbstractTrialClass(self, trial)
-    
+
     def __iter__(self):
         """Use SessionData in a for loop to return Trial objects"""
         for trial in range(self.nTrials):
             yield self.get_trial(trial)
+
+
+class SessionDataClass(BaseSessionDataClass):
+    """
+    Class for dealing with SessionData in Python.
+
+    Loads SessionDataClass MATLAB structure "fields" in as class attributes.
+    """
+
+    # Specify the default attributes and their data types
+    default_attributes = ['Info', 'nTrials', 'RawEvents', 'RawData', 'TrialStartTimestamp', 'TrialEndTimestamp',
+                          'SettingsFile']
+    Info: dict
+    nTrials: int
+    RawEvents: list  # Note that this removes the ['Trial'] index requirement
+    RawData: dict
+    TrialStartTimestamp: np.ndarray
+    TrialEndTimestamp: np.ndarray
+    SettingsFile: dict
+    
+    meta: dict  # This is created on initialisation of an object
+
+    def __init__(self, filepath_or_dict):
+        super().__init__(filepath_or_dict)
+        if self.meta['is_legacy']:
+            raise AssertionError("Cannot create SessionDataClass from legacy Bpod data, use LegacySessionDataClass instead")
+        
+        start_str = self.Info['SessionDate'] + ' ' + self.Info['SessionStartTime_UTC']
+        self.meta['start_time'] = datetime.datetime.strptime(start_str, '%d-%b-%Y %H:%M:%S')
 
     def trial_times(self, timetype='start'):
         if timetype == 'start':
@@ -101,6 +111,7 @@ class SessionDataClass:
         plot.plot_eventnumbers_across_trials(self, ax)
 
         ax = plt.subplot(gridspec[2], sharex=papaax)
+        
         plot.plot_trialtimes(self, ax)
 
         statedata = analysis.calculate_trial_times_table(self)
@@ -121,7 +132,7 @@ class SessionDataClass:
                       zorder=-1, color='b', alpha=0.3)
         ax.grid()
         sns.despine()
-
+        
 
 class AbstractTrialClass:
     def __init__(self, sessiondata, trial):
@@ -129,12 +140,14 @@ class AbstractTrialClass:
         self.trial = trial
 
     def outcome(self):
-        """
+        """Return a string describing what the outcome of the trial was.
 
         :return: String name of outcome type
         :rtype: str
         """
-        return
+        # IF you're going to use this then you have to class TrialClass(AbstracTrialClass):
+        # Then you'd use self.RawEvents to access the states and work out what happened
+        raise NotImplementedError("User must create own TrialClass that defines what an outcome is")
 
     def RawEvents(self):
         return self.SessionData.RawEvents[self.trial]
@@ -150,3 +163,12 @@ class AbstractTrialClass:
 
     def plot(self):
         plot.plottrial(self.RawEvents())
+
+
+class LegacySessionDataClass(BaseSessionDataClass):
+    """
+    Class for dealing with SessionData generated by pre Gen2 Bpod installations.
+    As you can see I haven't written anything for this at all.
+    """
+    def __init__(self, fpath_or_dict):
+        super().__init__(fpath_or_dict)

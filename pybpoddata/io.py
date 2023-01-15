@@ -20,9 +20,11 @@ def load_sessiondata_dict(fpath, simplify_rawevents=True):
 
     # If loading without simplify_cells it results in annoying numpy data types
     sessiondata = loadmat(fpath, simplify_cells=True)['SessionData']
+    is_legacy = determine_version(sessiondata) == 'legacy'
 
     sessiondata['TrialStartTimestamp'] = np.array(sessiondata['TrialStartTimestamp'])
-    sessiondata['TrialEndTimestamp'] = np.array(sessiondata['TrialEndTimestamp'])
+    if not is_legacy:
+        sessiondata['TrialEndTimestamp'] = np.array(sessiondata['TrialEndTimestamp'])
 
     # If it's one trial then the TrialData dict isn't within a list
     if sessiondata['nTrials'] == 1:
@@ -84,3 +86,26 @@ def datenum_to_datetime(datenum):
     return datetime.datetime.fromordinal(int(datenum)) \
            + datetime.timedelta(days=days) \
            - datetime.timedelta(days=366)
+           
+    
+def determine_version(session_item):
+    """Find if an object is a from a legacy Bpod installation or Gen2
+    session_item can be a SessionData object or a dictionary.
+    
+    KepecsLab/Bpod_r0_5 shows: nTrials, RawEvents, Settings, TrialstartTimestamp
+    as the fields added by AddTrialEvents()
+    
+    sanworks/Bpod_Gen2 has Info, nTrials, RawEvents, RawData,
+        TrialStartTimestamp, TrialEndTimestamp, SettingsFile
+    as the values added by AddTrialEvents()
+    
+    Returns a string of 'gen2' or 'legacy'
+    """
+    if not isinstance(session_item, dict):
+        session_item = session_item.__dict__
+    
+    if 'TrialEndTimestamp' in session_item.keys():
+        version = 'gen2'
+    else:
+        version = 'legacy'
+    return version
