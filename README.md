@@ -1,6 +1,6 @@
-A Python package for reading and using `SessionData`, the output .mat files from the MATLAB Bpod installation.
+A Python package for reading and using `SessionData`, the output .mat files from the MATLAB Bpod installation. A framework for interacting with data in an object-oriented method is provided, which could leverage the functions in `pybpoddata.analysis` to build a system specific to your task. 
 
-To install, download this package and use `pip install -e .`
+To install, make a local copy of this repository and `pip install path/to/repo/folder`.
 
 # Usage
 
@@ -20,13 +20,21 @@ SessionData = load_sessiondata_dict(filepath)
 
 I recommend using `SessionDataClass` for two reasons: because `pybpoddata.analysis` was built to work with `SessionDataClass` and because extending functionality with classes is perfect for this type of data. But it’s simpler (in some cases) to interact with the dictionary.
 
+`SessionDataClass` can be iterated over:
+
+```python
+outcomes = [Trial.outcome() for Trial in SessionData]
+```
+
+However, to make full use of this functionality you would have to write code that handles the specifics for your task, detailed later.
+
 ## What loading does
 
-`scipy.io.loadmat` can load .mat files in but the final output needs to be tweaked. The *default* values in SessionData are modified — any extra will require your own formatting.
+`scipy.io.loadmat` can load .mat files but the final output needs to be tweaked for consistent formatting. The *default* values in SessionData are modified — any extra will require your own formatting.
 
 1. Extraneous Trial cell array is removed: `SessionData.RawEvents.Trial{trial}.States` becomes `SessionData['RawEvents'][trial]['States']`
-2. The time arrays in `States` and `Events` are reformatted to ensure compatibility during indexing (this is the most important one)
-3. `SettingsFile` and `RawData` don’t get any reformatting because I never use them, but they almost certain do require reformatting if you are going to use them. Happy to take an issues/pull requests for them.
+2. The time arrays in `States` and `Events` are reformatted to ensure compatibility during indexing (State times are shape n x 2)
+3. `SettingsFile` and `RawData` don’t get any reformatting because I never use them, but they almost certain do require reformatting if you are going to use them. Happy to take issues/pull requests for them.
 
 ## Time profile
 
@@ -38,23 +46,17 @@ Using the `snakeviz` plugin in an iPython console I’ve looked at loading times
 | `pybpoddata.io.reformat_trialdata` | 0.0093   | 5.5%                  |
 | everything else                    | 0.0037   | 2.2%                  |
 
-# Using `SessionDataClass`
+In other words, not a lot of additional time is required to reformatt the data.
 
-`pybpoddata.dataclass.SessionDataClass` is built for working with Bpod data as exported from Bpod’s MATLAB installation.
+# Adapting `SessionDataClass` to your own task
+In order to make full use of the objected-oriented approach to Bpod data, you have to extend the functionality of `SessionDataClass` using [class inheritance](https://docs.python.org/3/tutorial/classes.html#inheritance) to fit the specifics of your Bpod protocol. For example, you might be interested in a trial's pre-stimulus time but how that is calculated depends on your task structure and what exactly you're after.
 
-`SessionDataClass` can take a path to a file or a dictionary (`io.load_sessiondata_dict` is recommended) as an input.
-
-`SessionDataClass` can be iterated over:
-
-```python
-outcomes = [Trial.outcome() for Trial in SessionData]
-```
-
-In order to make full use of this, you must extend the functionality using [class inheritance](https://docs.python.org/3/tutorial/classes.html#inheritance) to fit the specifics of your Bpod protocol.
+To do this, you should define your own `BpodData` module (.py file) and then within that define your own bpod-related classes.
 
 ```python
-# In your own project environment
+# In your own project
 from pybpoddata import classes
+
 class SessionDataClass(classes.SessionDataClass):
     def __init__(self, fpath):
     	super().__init__(fpath)  # Run the parent's init
@@ -62,9 +64,13 @@ class SessionDataClass(classes.SessionDataClass):
         # Apply formatting that's unique to your protocol
         self.MyUniqueProperty = format_myuniqueproperty(self.MyUniqueProperty)
     
-    # You can "overwrite" the parent's methods
+    # Make get_trial return your own TrialClass
     def get_trial(self, trial):
         return TrialClass(self, trial)
+    
+    # Perhaps you have your own functions for visualising the session
+    def plot_behaviour(self, ax=None):
+        create_my_custom_plot(self.RawEvents, ax=ax)
     
 class TrialClass(classes.AbstractTrialClass):
     def __init__(self, SessionData, trial):
@@ -76,4 +82,4 @@ class TrialClass(classes.AbstractTrialClass):
         return outcome_string
 ```
 
-In this way I think it makes a lot of sense to use `TrialClass` objects to do the work involved with the behaviour (e.g. how many times a mice did X before Y) rather than access the `SessionData` object directly.
+I think it makes a lot of sense to use `TrialClass` objects to do the work involved with the behaviour (e.g. how many times a mice did X before Y) rather than access the `SessionData` object directly.
