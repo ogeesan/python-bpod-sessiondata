@@ -116,7 +116,19 @@ def getlicks(eventdata, portnumber, align=True):
 
 
 def get_licks(Events, portinevent, portoutevent, align=True):
-    """Find when licks occurred"""
+    """
+    Find lick start and stop events
+    :param Events: events entered into during a trial
+    :type Events: dict
+    :param portinevent: name of lick start event
+    :type portinevent: str
+    :param portoutevent: name of lick end event
+    :type portoutevent: str
+    :param align: add nans if out before in or last event is in
+    :type align: bool
+    :return: portins, portouts
+    :rtype: numpy.typing.ndarray, numpy.typing.ndarray
+    """
     if portinevent in Events.keys():
         portins = Events[portinevent]
     else:
@@ -134,3 +146,20 @@ def get_licks(Events, portinevent, portoutevent, align=True):
             portouts = np.insert(portouts, len(portouts), np.nan)
 
     return portins, portouts
+
+def find_used_port_numbers(allevents):
+    """
+    Find the numbers of all port events in a list of events
+
+    :param allevents: List of all events e.g. SessionDataClass.meta['allevents']
+    :type allevents: list
+    :return: List of each port i that had any Port[i] event
+    :rtype: list
+    """
+    used_portevents = [event for event in allevents if event[:4] == 'Port']
+    port_numbers = [int(event[4]) for event in used_portevents]
+    unique_ports = []
+    for port_number in port_numbers:
+        if port_number not in unique_ports:
+            unique_ports.append(port_number)
+    return unique_ports
