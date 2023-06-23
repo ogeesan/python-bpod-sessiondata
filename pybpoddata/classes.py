@@ -8,6 +8,23 @@ from . import analysis, io, plot
 
 
 class BaseSessionDataClass:
+    """
+    Minimal working class for handling Bpod data
+    I recommend using SessionDataClass if using Bpod_Gen2.
+    """
+    # Specify the default attributes and their data types
+    default_attributes = ['Info', 'nTrials', 'RawEvents', 'RawData', 'TrialStartTimestamp', 'TrialEndTimestamp',
+                          'SettingsFile']
+    Info: dict
+    nTrials: int
+    RawEvents: list  # Note that this removes the ['Trial'] index requirement
+    RawData: dict
+    TrialStartTimestamp: np.ndarray
+    TrialEndTimestamp: np.ndarray
+    SettingsFile: dict
+
+    _meta: dict  # This is created on initialisation of an object
+
     def __init__(self, filepath_or_dict):
         """
         Python version of SessionDataClass
@@ -25,12 +42,12 @@ class BaseSessionDataClass:
         
         is_legacy = io.determine_version(sessiondatadict) == 'legacy'
         
-        self.meta = {'filename': filepath,
+        self._meta = {'filename': filepath,
                      'start_time': None,
                      'allstates': [],  # all states that the session will enter
                      'allevents': [],  # all events that the session will encounter
                      'is_legacy': is_legacy
-                     }  
+                     }
 
         # Set each dictionary item as an attribute of the object
         # This doesn't seem like best practice: Might change this to use @property while storing the raw data in ._sessiondata?
@@ -44,8 +61,15 @@ class BaseSessionDataClass:
 
         # Complete meta information
         allstates, allevents = analysis.find_all_states_events(sessiondatadict['RawEvents'])
-        self.meta['allstates'] = allstates
-        self.meta['allevents'] = allevents
+        self._meta['allstates'] = allstates
+        self._meta['allevents'] = allevents
+
+        if not hasattr(self, 'meta'):
+            self.meta = self._meta
+            self._meta['meta_attr'] = True
+        else:
+            # This would occur if your protocol code creates a meta field
+            self._meta['meta_attr'] = False
     
     def get_trial(self, trial):
         return AbstractTrialClass(self, trial)
@@ -58,35 +82,20 @@ class BaseSessionDataClass:
 
 class SessionDataClass(BaseSessionDataClass):
     """
-    Class for dealing with SessionData in Python.
 
-    Loads SessionDataClass MATLAB structure "fields" in as class attributes.
     """
-
-    # Specify the default attributes and their data types
-    default_attributes = ['Info', 'nTrials', 'RawEvents', 'RawData', 'TrialStartTimestamp', 'TrialEndTimestamp',
-                          'SettingsFile']
-    Info: dict
-    nTrials: int
-    RawEvents: list  # Note that this removes the ['Trial'] index requirement
-    RawData: dict
-    TrialStartTimestamp: np.ndarray
-    TrialEndTimestamp: np.ndarray
-    SettingsFile: dict
-    
-    meta: dict  # This is created on initialisation of an object
 
     def __init__(self, filepath_or_dict):
         super().__init__(filepath_or_dict)
-        if self.meta['is_legacy']:
+        if self._meta['is_legacy']:
             raise AssertionError("Cannot create SessionDataClass from legacy Bpod data, use LegacySessionDataClass instead")
         
         start_str = self.Info['SessionDate'] + ' ' + self.Info['SessionStartTime_UTC']
-        self.meta['start_time'] = datetime.datetime.strptime(start_str, '%d-%b-%Y %H:%M:%S')
+        self._meta['start_time'] = datetime.datetime.strptime(start_str, '%d-%b-%Y %H:%M:%S')
 
     def trial_times(self, timetype='start'):
         if timetype == 'start':
-            starttime = self.meta['start_time']
+            starttime = self._meta['start_time']
             return [starttime + datetime.timedelta(seconds=x) for x in self.TrialStartTimestamp]
         elif timetype == 'duration':
             return self.TrialEndTimestamp - self.TrialStartTimestamp
@@ -95,10 +104,10 @@ class SessionDataClass(BaseSessionDataClass):
     
     def summary(self):
         """Print a text summary for a fast understanding"""
-        print(f"Filename: {self.meta['filename']}\n"
-              f"{self.nTrials} trials completed in {self.TrialEndTimestamp[-1] / 60:.1f} minutes on {self.meta['start_time']}\n"
-              f"All states: {self.meta['allstates']}\n"
-              f"All events: {self.meta['allevents']}\n")
+        print(f"Filename: {self._meta['filename']}\n"
+              f"{self.nTrials} trials completed in {self.TrialEndTimestamp[-1] / 60:.1f} minutes on {self._meta['start_time']}\n"
+              f"All states: {self._meta['allstates']}\n"
+              f"All events: {self._meta['allevents']}\n")
 
     def summary_plot(self, fig=None):
         fig = plt.gcf() if fig is None else fig
@@ -158,7 +167,7 @@ class AbstractTrialClass:
         if relative_to == 'trial':
             return trial_start_timestamp
         elif relative_to == 'clock':
-            return self.SessionData.meta['start_time'] + datetime.timedelta(seconds=trial_start_timestamp)
+            return self.SessionData._meta['start_time'] + datetime.timedelta(seconds=trial_start_timestamp)
         else:
             raise AssertionError(f"relative_to '{relative_to}' is not 'trial' or 'clock'")
 
@@ -179,10 +188,10 @@ class LegacySessionDataClass(BaseSessionDataClass):
 
     def summary(self):
         """Print a text summary for a fast understanding"""
-        print(f"Filename: {self.meta['filename']}\n"
-              f"{self.nTrials} trials completed in {self.TrialStartTimestamp[-1] / 60:.1f} minutes on {self.meta['start_time']}\n"
-              f"All states: {self.meta['allstates']}\n"
-              f"All events: {self.meta['allevents']}\n")
+        print(f"Filename: {self._meta['filename']}\n"
+              f"{self.nTrials} trials completed in {self.TrialStartTimestamp[-1] / 60:.1f} minutes on {self._meta['start_time']}\n"
+              f"All states: {self._meta['allstates']}\n"
+              f"All events: {self._meta['allevents']}\n")
     
     def summary_plot(self, fig=None):
         fig = plt.gcf() if fig is None else fig
